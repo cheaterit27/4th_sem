@@ -1,0 +1,463 @@
+import java.util.Scanner;
+
+class Vehicle {
+    protected String licenceNumber;
+    protected int speed;
+    protected String color;
+    protected String ownerName;
+
+    public void showData() {
+        System.out.println("This is a vehicle class");
+    }
+}
+
+class Bus extends Vehicle {
+    private int routeNo;
+
+    public void inputData(Scanner sc) {
+        System.out.print("Enter Licence Number: ");
+        licenceNumber = sc.next();
+        System.out.print("Enter Speed: ");
+        speed = sc.nextInt();
+        System.out.print("Enter Color: ");
+        color = sc.next();
+        System.out.print("Enter Owner Name: ");
+        ownerName = sc.next();
+        System.out.print("Enter Route Number: ");
+        routeNo = sc.nextInt();
+    }
+
+    public void showData() {
+        super.showData();
+        System.out.println("Bus Details:");
+        System.out.println("Licence Number: " + licenceNumber);
+        System.out.println("Speed: " + speed);
+        System.out.println("Color: " + color);
+        System.out.println("Owner Name: " + ownerName);
+        System.out.println("Route Number: " + routeNo);
+    }
+}
+
+class Car extends Vehicle {
+    private String manufacturerName;
+
+    public void inputData(Scanner sc) {
+        System.out.print("Enter Licence Number: ");
+        licenceNumber = sc.next();
+        System.out.print("Enter Speed: ");
+        speed = sc.nextInt();
+        System.out.print("Enter Color: ");
+        color = sc.next();
+        System.out.print("Enter Owner Name: ");
+        ownerName = sc.next();
+        System.out.print("Enter Manufacturer Name: ");
+        manufacturerName = sc.next();
+    }
+
+    public void showData() {
+        super.showData();
+        System.out.println("Car Details:");
+        System.out.println("Licence Number: " + licenceNumber);
+        System.out.println("Speed: " + speed);
+        System.out.println("Color: " + color);
+        System.out.println("Owner Name: " + ownerName);
+        System.out.println("Manufacturer Name: " + manufacturerName);
+    }
+}
+
+public class VehicleMain {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        Bus bus = new Bus();
+        Car car = new Car();
+
+        System.out.println("Enter details for Bus:");
+        bus.inputData(sc);
+
+        System.out.println("\nEnter details for Car:");
+        car.inputData(sc);
+
+        System.out.println("\n--- Vehicle Info ---");
+        bus.showData();
+        System.out.println();
+        car.showData();
+    }
+}
+
+
+
+import java.util.Scanner;
+
+class ArraySorter {
+    public void sortAscending(int[] arr) {
+        int n = arr.length;
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = 0; j < n - 1 - i; j++) {
+                if (arr[j] > arr[j + 1]) {
+                    int temp = arr[j];
+                    arr[j] = arr[j + 1];
+                    arr[j + 1] = temp;
+                }
+            }
+        }
+
+        System.out.println("Sorted array in ascending order:");
+        for (int num : arr) {
+            System.out.print(num + " ");
+        }
+    }
+}
+
+public class SortArrayMain {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        System.out.print("Enter size of array: ");
+        int n = sc.nextInt();
+        int[] arr = new int[n];
+
+        System.out.println("Enter " + n + " elements:");
+        for (int i = 0; i < n; i++) {
+            arr[i] = sc.nextInt();
+        }
+
+        ArraySorter sorter = new ArraySorter();
+        sorter.sortAscending(arr);
+    }
+}
+
+
+
+
+import java.util.Scanner;
+
+class MatrixMultiplier {
+    public void multiply(int[][] A, int[][] B, int r1, int c1, int r2, int c2) {
+        if (c1 != r2) {
+            System.out.println("Matrix multiplication not possible.");
+            return;
+        }
+
+        int[][] result = new int[r1][c2];
+
+        for (int i = 0; i < r1; i++) {
+            for (int j = 0; j < c2; j++) {
+                result[i][j] = 0;
+                for (int k = 0; k < c1; k++) {
+                    result[i][j] += A[i][k] * B[k][j];
+                }
+            }
+        }
+
+        System.out.println("Resultant Matrix:");
+        for (int i = 0; i < r1; i++) {
+            for (int j = 0; j < c2; j++) {
+                System.out.print(result[i][j] + " ");
+            }
+            System.out.println();
+        }
+    }
+}
+
+public class MatrixMain {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        System.out.print("Enter rows and columns of Matrix A: ");
+        int r1 = sc.nextInt();
+        int c1 = sc.nextInt();
+        int[][] A = new int[r1][c1];
+        System.out.println("Enter elements of Matrix A:");
+        for (int i = 0; i < r1; i++)
+            for (int j = 0; j < c1; j++)
+                A[i][j] = sc.nextInt();
+
+        System.out.print("Enter rows and columns of Matrix B: ");
+        int r2 = sc.nextInt();
+        int c2 = sc.nextInt();
+        int[][] B = new int[r2][c2];
+        System.out.println("Enter elements of Matrix B:");
+        for (int i = 0; i < r2; i++)
+            for (int j = 0; j < c2; j++)
+                B[i][j] = sc.nextInt();
+
+        MatrixMultiplier mm = new MatrixMultiplier();
+        mm.multiply(A, B, r1, c1, r2, c2);
+    }
+}
+
+
+
+
+import java.util.Scanner;
+
+abstract class ThreeDObject {
+    protected double dim1, dim2, dim3;
+
+    abstract void wholeSurfaceArea();
+    abstract void volume();
+}
+
+class Box extends ThreeDObject {
+    public Box(double l, double b, double h) {
+        dim1 = l;
+        dim2 = b;
+        dim3 = h;
+    }
+
+    void wholeSurfaceArea() {
+        double area = 2 * (dim1 * dim2 + dim2 * dim3 + dim1 * dim3);
+        System.out.println("Surface Area of Box: " + area);
+    }
+
+    void volume() {
+        double vol = dim1 * dim2 * dim3;
+        System.out.println("Volume of Box: " + vol);
+    }
+}
+
+class Cube extends ThreeDObject {
+    public Cube(double side) {
+        dim1 = side;
+    }
+
+    void wholeSurfaceArea() {
+        double area = 6 * dim1 * dim1;
+        System.out.println("Surface Area of Cube: " + area);
+    }
+
+    void volume() {
+        double vol = dim1 * dim1 * dim1;
+        System.out.println("Volume of Cube: " + vol);
+    }
+}
+
+class Cylinder extends ThreeDObject {
+    public Cylinder(double radius, double height) {
+        dim1 = radius;
+        dim2 = height;
+    }
+
+    void wholeSurfaceArea() {
+        double area = 2 * Math.PI * dim1 * (dim1 + dim2);
+        System.out.println("Surface Area of Cylinder: " + area);
+    }
+
+    void volume() {
+        double vol = Math.PI * dim1 * dim1 * dim2;
+        System.out.println("Volume of Cylinder: " + vol);
+    }
+}
+
+class Cone extends ThreeDObject {
+    public Cone(double radius, double height) {
+        dim1 = radius;
+        dim2 = height;
+    }
+
+    void wholeSurfaceArea() {
+        double slant = Math.sqrt(dim1 * dim1 + dim2 * dim2);
+        double area = Math.PI * dim1 * (dim1 + slant);
+        System.out.println("Surface Area of Cone: " + area);
+    }
+
+    void volume() {
+        double vol = (1.0 / 3) * Math.PI * dim1 * dim1 * dim2;
+        System.out.println("Volume of Cone: " + vol);
+    }
+}
+
+public class ThreeDMain {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        System.out.print("Enter length, breadth, height for Box: ");
+        ThreeDObject box = new Box(sc.nextDouble(), sc.nextDouble(), sc.nextDouble());
+        box.wholeSurfaceArea();
+        box.volume();
+
+        System.out.print("\nEnter side for Cube: ");
+        ThreeDObject cube = new Cube(sc.nextDouble());
+        cube.wholeSurfaceArea();
+        cube.volume();
+
+        System.out.print("\nEnter radius and height for Cylinder: ");
+        ThreeDObject cylinder = new Cylinder(sc.nextDouble(), sc.nextDouble());
+        cylinder.wholeSurfaceArea();
+        cylinder.volume();
+
+        System.out.print("\nEnter radius and height for Cone: ");
+        ThreeDObject cone = new Cone(sc.nextDouble(), sc.nextDouble());
+        cone.wholeSurfaceArea();
+        cone.volume();
+    }
+}
+
+
+
+
+
+import java.util.Scanner;
+
+interface Department {
+    void getDepartmentDetails(Scanner sc);
+    void printDepartmentDetails();
+}
+
+class Hostel {
+    String hostelName, hostelLocation;
+    int noOfRooms;
+
+    void getHostelDetails(Scanner sc) {
+        System.out.print("Enter Hostel Name: ");
+        hostelName = sc.next();
+        System.out.print("Enter Hostel Location: ");
+        hostelLocation = sc.next();
+        System.out.print("Enter Number of Rooms: ");
+        noOfRooms = sc.nextInt();
+    }
+
+    void printHostelDetails() {
+        System.out.println("Hostel Name: " + hostelName);
+        System.out.println("Hostel Location: " + hostelLocation);
+        System.out.println("Number of Rooms: " + noOfRooms);
+    }
+}
+
+class Student extends Hostel implements Department {
+    String depName, depHead;
+    String studentName, regNo, electiveSubject;
+    double avgMarks;
+
+    public void getDepartmentDetails(Scanner sc) {
+        System.out.print("Enter Department Name: ");
+        depName = sc.next();
+        System.out.print("Enter Department Head: ");
+        depHead = sc.next();
+    }
+
+    public void printDepartmentDetails() {
+        System.out.println("Department Name: " + depName);
+        System.out.println("Department Head: " + depHead);
+    }
+
+    void getStudentDetails(Scanner sc) {
+        System.out.print("Enter Student Name: ");
+        studentName = sc.next();
+        System.out.print("Enter Reg No: ");
+        regNo = sc.next();
+        System.out.print("Enter Elective Subject: ");
+        electiveSubject = sc.next();
+        System.out.print("Enter Average Marks: ");
+        avgMarks = sc.nextDouble();
+    }
+
+    void printStudentDetails() {
+        System.out.println("Student Name: " + studentName);
+        System.out.println("Reg No: " + regNo);
+        System.out.println("Elective Subject: " + electiveSubject);
+        System.out.println("Average Marks: " + avgMarks);
+    }
+}
+
+public class StudentMain {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        Student student = new Student();
+
+        student.getHostelDetails(sc);
+        student.getDepartmentDetails(sc);
+        student.getStudentDetails(sc);
+
+        System.out.println("\n--- Student Information ---");
+        student.printHostelDetails();
+        student.printDepartmentDetails();
+        student.printStudentDetails();
+    }
+}
+
+
+
+
+
+package mathops;
+
+public class Operations {
+    public static int add(int a, int b) {
+        return a + b;
+    }
+
+    public static int subtract(int a, int b) {
+        return a - b;
+    }
+
+    public static int multiply(int a, int b) {
+        return a * b;
+    }
+
+    public static double divide(int a, int b) {
+        return (double) a / b;
+    }
+}
+
+import java.util.Scanner;
+import mathops.Operations;
+
+public class MathMain {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        System.out.print("Enter two numbers: ");
+        int a = sc.nextInt();
+        int b = sc.nextInt();
+
+        System.out.println("Addition: " + Operations.add(a, b));
+        System.out.println("Subtraction: " + Operations.subtract(a, b));
+        System.out.println("Multiplication: " + Operations.multiply(a, b));
+        if (b != 0)
+            System.out.println("Division: " + Operations.divide(a, b));
+        else
+            System.out.println("Division by zero not allowed.");
+    }
+}
+
+
+
+
+
+
+import java.util.Scanner;
+
+public class Factorial {
+    static long[] factCache = new long[21]; // store factorial from 0 to 20
+
+    public static long computeFactorial(int x) {
+        if (x < 0)
+            throw new IllegalArgumentException("value of x must be positive");
+        if (x >= factCache.length)
+            throw new IllegalArgumentException("result will overflow.");
+
+        if (factCache[x] != 0)
+            return factCache[x];
+
+        long result = 1;
+        for (int i = 2; i <= x; i++) {
+            result *= i;
+        }
+        factCache[x] = result;
+        return result;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter number to compute factorial: ");
+        int x = sc.nextInt();
+
+        try {
+            long result = computeFactorial(x);
+            System.out.println(x + "! = " + result);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+}
