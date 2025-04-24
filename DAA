@@ -1,98 +1,61 @@
 #include <stdio.h>
-#include <limits.h>
+#include <stdbool.h>
 
-#define MAX 10
-#define INF 99999
+#define MAX 100
 
-int dist[MAX][MAX], next[MAX][MAX];
-int V;
-
-void printMatrix(int k) {
-    printf("\nA%d\n", k); 
-
-    printf("\t");
-    for (int j = 0; j < V; j++)
-        printf("%d\t", j + 1);
-    printf("\n");
-
+bool isSafe(int vertex, int graph[MAX][MAX], int color[], int c, int V) {
     for (int i = 0; i < V; i++) {
-        printf("%d\t", i + 1); 
-        for (int j = 0; j < V; j++) {
-            if (dist[i][j] == INF)
-                printf("INF\t");
-            else
-                printf("%d\t", dist[i][j]);
-        }
-        printf("\n");
+        if (graph[vertex][i] && color[i] == c)
+            return false;
     }
+    return true;
 }
 
-void printPath(int u, int v) {
-    if (next[u][v] == -1) {
-        printf("No path\n");
-        return;
-    }
+bool graphColoringUtil(int graph[MAX][MAX], int m, int color[], int v, int V) {
+    if (v == V)
+        return true;
 
-    printf("%d", u + 1);
-    while (u != v) {
-        u = next[u][v];
-        printf(" -> %d", u + 1);
+    for (int c = 1; c <= m; c++) {
+        if (isSafe(v, graph, color, c, V)) {
+            color[v] = c;
+            if (graphColoringUtil(graph, m, color, v + 1, V))
+                return true;
+            color[v] = 0;
+        }
     }
+    return false;
 }
 
-void floydWarshall() {
-    for (int k = 0; k < V; k++) {
-        for (int i = 0; i < V; i++) {
-            for (int j = 0; j < V; j++) {
-                if (dist[i][k] != INF && dist[k][j] != INF &&
-                    dist[i][j] > dist[i][k] + dist[k][j]) {
-                    dist[i][j] = dist[i][k] + dist[k][j];
-                    next[i][j] = next[i][k];
-                }
-            }
-        }
-        printMatrix(k + 1); 
+int findChromaticNumber(int graph[MAX][MAX], int V, int color[]) {
+    for (int m = 1; m <= V; m++) {
+        for (int i = 0; i < V; i++) color[i] = 0;
+        if (graphColoringUtil(graph, m, color, 0, V))
+            return m;
     }
+    return V; 
+}
+
+void printSolution(int color[], int V, int chromaticNumber) {
+    printf("Minimum number of colors required: %d\n", chromaticNumber);
+    for (int i = 0; i < V; i++)
+        printf("Vertex %d ---> Color %d\n", i, color[i]);
 }
 
 int main() {
-    int E;
+    int V;
     printf("Enter number of vertices: ");
     scanf("%d", &V);
-    printf("Enter number of edges: ");
-    scanf("%d", &E);
 
-    for (int i = 0; i < V; i++) {
-        for (int j = 0; j < V; j++) {
-            if (i == j)
-                dist[i][j] = 0;
-            else
-                dist[i][j] = INF;
-            next[i][j] = -1;
-        }
-    }
+    int graph[MAX][MAX];
+    printf("Enter the adjacency matrix (%d x %d):\n", V, V);
+    for (int i = 0; i < V; i++)
+        for (int j = 0; j < V; j++)
+            scanf("%d", &graph[i][j]);
 
-    printf("Enter edges as: source destination weight\n");
-    for (int i = 0; i < E; i++) {
-        int u, v, w;
-        scanf("%d %d %d", &u, &v, &w);
-        u--; v--;
-        dist[u][v] = w;
-        next[u][v] = v;
-    }
+    int color[MAX] = {0};
+    int chromaticNumber = findChromaticNumber(graph, V, color);
 
-    printMatrix(0);
-    floydWarshall();
-
-    printf("\nPaths:\n");
-    for (int i = 0; i < V; i++) {
-        for (int j = 0; j < V; j++) {
-            if (i != j && dist[i][j] != INF) {
-                printPath(i, j);
-                printf(": %d\n", dist[i][j]);
-            }
-        }
-    }
+    printSolution(color, V, chromaticNumber);
 
     return 0;
 }
