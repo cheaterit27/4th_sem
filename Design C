@@ -1,0 +1,78 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
+
+#define NUM_ITEMS 10000
+#define NUM_WORKERS 10
+
+// Uniformly distributed time between 100 and 300
+double get_assembly_time() {
+    return 100.0 + (rand() / (double)RAND_MAX) * 200.0;
+}
+
+// Normally distributed polishing time with mean 20 and stddev 7 (truncated below 5)
+double get_polishing_time() {
+    double u1, u2, z;
+    do {
+        u1 = rand() / (double)RAND_MAX;
+        u2 = rand() / (double)RAND_MAX;
+        z = sqrt(-2.0 * log(u1)) * cos(2 * M_PI * u2);
+        z = 20.0 + 7.0 * z;
+    } while (z < 5.0);
+    return z;
+}
+
+// Find the earliest available polishing machine
+int find_next_available_machine(double *machine_ready_times, int num_machines, double current_time) {
+    int idx = 0;
+    for (int i = 1; i < num_machines; i++) {
+        if (machine_ready_times[i] < machine_ready_times[idx]) {
+            idx = i;
+        }
+    }
+    return idx;
+}
+
+double simulate(int num_machines) {
+    double worker_time[NUM_WORKERS] = {0};
+    double machine_ready[num_machines];
+    for (int i = 0; i < num_machines; i++) {
+        machine_ready[i] = 0;
+    }
+
+    double total_wait_time = 0;
+
+    for (int i = 0; i < NUM_ITEMS; i++) {
+        int worker_id = i % NUM_WORKERS;
+
+        // Assembly
+        double assembly_time = get_assembly_time();
+        double assembly_done = worker_time[worker_id] + assembly_time;
+
+        // Find polishing machine
+        int machine_id = find_next_available_machine(machine_ready, num_machines, assembly_done);
+        double wait_time = fmax(0, machine_ready[machine_id] - assembly_done);
+        double polishing_start = assembly_done + wait_time;
+        double polishing_time = get_polishing_time();
+        double polishing_done = polishing_start + polishing_time;
+
+        // Update times
+        machine_ready[machine_id] = polishing_done;
+        worker_time[worker_id] = polishing_done;
+
+        total_wait_time += wait_time;
+    }
+
+    return total_wait_time / NUM_ITEMS;
+}
+
+int main() {
+    srand(time(NULL));
+
+    printf("Average wait time with 1 polishing machine: %.2f seconds\n", simulate(1));
+    printf("Average wait time with 2 polishing machines: %.2f seconds\n", simulate(2));
+    printf("Average wait time with 3 polishing machines: %.2f seconds\n", simulate(3));
+
+    return 0;
+}
