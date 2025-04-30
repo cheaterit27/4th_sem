@@ -45,11 +45,10 @@ int main() {
 
     cli_addr_len = sizeof(cli_addr);
     for (;;) {
-        printf("\nSERVER: Waiting for client connections... Press Ctrl+C to terminate.\n");
-
+        
         if ((connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &cli_addr_len)) < 0) {
             perror("SERVER ERROR: Cannot accept connection");
-            continue;
+           
         }
         printf("\nSERVER: Connected to client at %s.\n", inet_ntoa(cli_addr.sin_addr));
 
@@ -65,11 +64,7 @@ int main() {
             select(connfd + 1, &read_fds, NULL, NULL, NULL);
 
             if (FD_ISSET(STDIN_FILENO, &read_fds)) {
-                bzero(buff, BUFFER_SIZE);
-                fgets(buff, BUFFER_SIZE, stdin);
-                buff[strcspn(buff, "\n")] = 0;
-                printf("SERVER: %s\n", buff);
-                write(connfd, buff, strlen(buff) + 1);
+              (connfd, buff, strlen(buff) + 1);
 
                 if (strcmp(buff, "exit") == 0) {
                     printf("\nSERVER: Disconnected client manually.\n");
@@ -85,9 +80,7 @@ int main() {
                 }
                 printf("\nCLIENT: %s\n", buff);
 
-                if (strcmp(buff, "exit") == 0) {
-                    printf("\nSERVER: Client requested disconnection.\n");
-                    break;
+                
                 }
             }
         }
