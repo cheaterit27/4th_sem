@@ -1,0 +1,705 @@
+//Calculator UDP SERVER
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <math.h>
+
+#define BUFFER_SIZE 256
+
+double evaluateExpression(char *expr) {
+    char command[BUFFER_SIZE + 10];
+    snprintf(command, sizeof(command), "echo '%s' | bc", expr);
+    FILE *fp = popen(command, "w+");
+    if (fp == NULL) return NAN;
+    char resultBuffer[BUFFER_SIZE];
+    if (fgets(resultBuffer, sizeof(resultBuffer), fp) == NULL) {
+        pclose(fp);
+        return NAN;
+    }
+    pclose(fp);
+    return atof(resultBuffer);
+}
+
+int main() {
+    struct sockaddr_in serv_addr, cli_addr;
+    int sockfd;
+    socklen_t cli_len;
+    char buff[BUFFER_SIZE];
+
+    unsigned short serv_port = 25022;
+    char serv_ip[] = "127.0.0.1";
+
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("SERVER ERROR: Cannot create socket");
+        exit(1);
+    }
+
+    bzero(&serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(serv_port);
+    inet_aton(serv_ip, &serv_addr.sin_addr);
+
+    if (bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("SERVER ERROR: Cannot bind");
+        close(sockfd);
+        exit(1);
+    }
+
+    printf("\nUDP CALCULATOR SERVER STARTED.\n");
+
+    cli_len = sizeof(cli_addr);
+
+    for (;;) {
+        bzero(buff, BUFFER_SIZE);
+        recvfrom(sockfd, buff, BUFFER_SIZE, 0, (struct sockaddr*), &cli_len);
+        printf("\nSERVER: Connected to client at %s.\n", inet_ntoa(cli_addr.sin_addr));
+
+        for (;;) {
+            printf("\nSERVER: Enter 'exit' to disconnect or anything else to continue: ");
+            fgets(buff, BUFFER_SIZE, stdin);
+            buff[strcspn(buff, "\n")] = 0;
+
+            sendto(sockfd, buff, strlen(buff) + 1, 0, (struct sockaddr*)&cli_addr, cli_len);
+
+            if (strcmp(buff, "exit") == 0) {
+                printf("\nSERVER: Disconnected client.\n");
+                break;
+            }
+
+            bzero(buff, BUFFER_SIZE);
+            recvfrom(sockfd, buff, BUFFER_SIZE, 0, (struct sockaddr*)&cli_addr);
+
+            if (strcmp(buff, "exit") == 0) {
+                printf("\nSERVER: Client requested disconnection.\n");
+                break;
+            }
+
+            printf("\nSERVER: Received expression for evaluation: %s\n", buff);
+
+            double result = evaluateExpression(buff);
+            char resultBuffer[BUFFER_SIZE];
+            snprintf(resultBuffer, BUFFER_SIZE, "Result: %.2f", result);
+
+            sendto(sockfd, resultBuffer, strlen(resultBuffer) + 1, 0, (struct sockaddr*)&cli_addr, cli_len);
+            
+        }
+
+        printf("\nSERVER: Waiting for client...\n");
+    }
+
+    close(sockfd);
+}
+
+
+
+
+
+
+
+
+//Calculator UDP Client 
+
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define BUFFER_SIZE 256
+
+int main() {
+    struct sockaddr_in serv_addr;
+    int sockfd;
+    char buff[BUFFER_SIZE];
+    socklen_t serv_len;
+
+    unsigned short serv_port = 25022;
+    char serv_ip[] = "127.0.0.1";
+
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("CLIENT ERROR: Cannot create socket");
+        exit(1);
+    }
+
+    bzero(&serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(serv_port);
+    inet_aton(serv_ip, &serv_addr.sin_addr);
+    serv_len = sizeof(serv_addr);
+
+    strcpy(buff, "Hello Server");
+    sendto(sockfd, buff, strlen(buff) + 1, 0, (struct sockaddr*)&serv_addr, serv_len);
+
+    printf("\nCLIENT: Connected to server at %s:%d\n", serv_ip, serv_port);
+
+    for (;;) {
+        bzero(buff, BUFFER_SIZE);
+        recvfrom(sockfd, buff, BUFFER_SIZE, 0, (struct sockaddr*)&serv_addr, &serv_len);
+
+        if (strcmp(buff, "exit") == 0) {
+            printf("\nCLIENT: Server disconnected.\n");
+            break;
+        }
+
+        printf("\nCLIENT: Enter expression to continue and (exit) to quit: ");
+        fgets(buff, BUFFER_SIZE, stdin);
+        buff[strcspn(buff, "\n")] = 0;
+
+        if (strcmp(buff, "exit") == 0) {
+            printf("\nCLIENT: Disconnected from server.\n");
+            break;
+        }
+
+        recvfrom(sockfd, buff, BUFFER_SIZE, 0, (struct sockaddr*)&serv_addr, &serv_len);
+
+        printf("\nCLIENT: Received result from server: %s\n", buff);
+    }
+
+    close(sockfd);
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+//Chat Server UDP
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/select.h>
+
+#define BUFFER_SIZE 256
+
+int main() {
+    struct sockaddr_in serv_addr, cli_addr;
+    int sockfd;
+    socklen_t cli_addr_len;
+    char buff[BUFFER_SIZE];
+
+    unsigned short serv_port = 25022;
+    char serv_ip[] = "127.0.0.1";
+
+    bzero(&serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(serv_port);
+    inet_aton(serv_ip, &serv_addr.sin_addr);
+
+    printf("\nCHAT SERVER STARTED.\n");
+
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("SERVER ERROR: Cannot create socket");
+        exit(1);
+    }
+
+    cli_addr_len = sizeof(cli_addr);
+
+    while (1) {   
+        printf("\nSERVER: Waiting for connection...\n");
+        bzero(buff, BUFFER_SIZE);
+
+        recvfrom(sockfd, buff, BUFFER_SIZE, 0, (struct sockaddr*)&cli_addr, &cli_addr_len);
+        printf("\nSERVER: Connected to client at %s\n", inet_ntoa(cli_addr.sin_addr));
+
+        sendto(sockfd, "connected", strlen("connected") + 1, 0, (struct sockaddr*)&cli_addr, cli_addr_len);
+
+        fd_set read_fds;
+        while (1) {  
+            FD_ZERO(&read_fds);
+            FD_SET(STDIN_FILENO, &read_fds);
+            FD_SET(sockfd, &read_fds);
+
+            printf("\nSERVER: Type a message (or 'exit' to disconnect client): ");
+            fflush(stdout);
+
+            select(sockfd + 1, &read_fds, NULL, NULL, NULL);
+
+            if (FD_ISSET(STDIN_FILENO, &read_fds)) {
+                bzero(buff, BUFFER_SIZE);
+                fgets(buff, BUFFER_SIZE, stdin);
+                buff[strcspn(buff, "\n")] = 0;
+                printf("SERVER: %s\n", buff);
+
+                sendto(sockfd, buff, strlen(buff) + 1, 0, (struct sockaddr*)&cli_addr, cli_addr_len);
+
+                if (strcmp(buff, "exit") == 0) {
+                    printf("\nSERVER: Disconnected client manually.\n");
+                    break; 
+                }
+            }
+
+            if (FD_ISSET(sockfd, &read_fds)) {
+                bzero(buff, BUFFER_SIZE);
+                recvfrom(sockfd, buff, BUFFER_SIZE, 0, (struct sockaddr*)&cli_addr, &cli_addr_len);
+
+                printf("\nCLIENT [%s]: %s\n", inet_ntoa(cli_addr.sin_addr), buff);
+
+                    break;  
+                }
+            }
+        }
+    }
+
+    close(sockfd);
+    return 0;
+}
+
+
+
+
+
+//Chat Client UDP
+
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/select.h>
+
+#define BUFFER_SIZE 256
+
+int main() {
+    struct sockaddr_in serv_addr;
+    int sockfd;
+    socklen_t serv_addr_len;
+    char buff[BUFFER_SIZE];
+
+    unsigned short serv_port = 25022;
+    char serv_ip[] = "127.0.0.1";
+
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("CLIENT ERROR: Cannot create socket");
+        exit(1);
+    }
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(serv_port);
+    inet_aton(serv_ip, &serv_addr.sin_addr);
+    serv_addr_len = sizeof(serv_addr);
+
+    printf("\nCLIENT: Connecting to server at %s:%d\n", serv_ip, serv_port);
+
+    sendto(sockfd, "hello", strlen("hello") + 1, 0, (struct sockaddr*)&serv_addr, serv_addr_len);
+
+    recvfrom(sockfd, buff, BUFFER_SIZE, 0, (struct sockaddr*)&serv_addr, &serv_addr_len);
+    if (strcmp(buff, "connected") == 0) {
+        printf("\nCLIENT: Connected to server!\n");
+    }
+
+    fd_set read_fds;
+    while (1) {
+        FD_ZERO(&read_fds);
+        FD_SET(STDIN_FILENO, &read_fds);
+        FD_SET(sockfd, &read_fds);
+
+        printf("\nCLIENT: Type a message (or 'exit' to disconnect): ");
+        fflush(stdout);
+
+        select(sockfd + 1, &read_fds, NULL, NULL, NULL);
+
+        if (FD_ISSET(STDIN_FILENO, &read_fds)) {
+            bzero(buff, BUFFER_SIZE);
+            fgets(buff, BUFFER_SIZE, stdin);
+         
+            printf("CLIENT: %s\n", buff);
+
+            sendto(sockfd, buff, strlen(buff) + 1, 0, (struct sockaddr*)&serv_addr, serv_addr_len);
+
+            if (strcmp(buff, "exit") == 0) {
+                printf("\nCLIENT: Disconnected from server.\n");
+                break;
+            }
+        }
+
+        if (FD_ISSET(sockfd, &read_fds)) {
+            bzero(buff, BUFFER_SIZE);
+            recvfrom(sockfd, buff, BUFFER_SIZE, 0, (struct sockaddr*)&serv_addr, &serv_addr_len);
+
+            printf("\nSERVER: %s\n", buff);
+
+            }
+        }
+    }
+
+    close(sockfd);
+    return 0;
+}
+
+
+
+
+
+//TCP COMMAND CLIENT
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define BUFFER_SIZE 256
+
+int main() {
+    struct sockaddr_in serv_addr;
+    int sockfd;
+    char buff[BUFFER_SIZE];
+
+    unsigned short serv_port = 25022;
+    char serv_ip[] = "127.0.0.1";
+
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("CLIENT ERROR: Cannot create socket");
+        exit(1);
+    }
+
+    bzero(&serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(serv_port);
+    inet_aton(serv_ip, &serv_addr.sin_addr);
+
+    if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("CLIENT ERROR: Cannot connect to server");
+        close(sockfd);
+        exit(1);
+    }
+
+    printf("\nCLIENT: Connected to server at %s:%d\n", serv_ip, serv_port);
+
+    for (;;) {
+        bzero(buff, BUFFER_SIZE);
+        if (read(sockfd, buff, BUFFER_SIZE) <= 0) break;
+
+        if (strcmp(buff, "exit") == 0) {
+            printf("\nCLIENT: Server requested disconnection.\n");
+            break;
+        }
+
+        printf("\nCLIENT: Enter a command to execute (or 'exit' to quit): ");
+        fgets(buff, BUFFER_SIZE, stdin);
+        buff[strcspn(buff, "\n")] = 0;
+
+        if (strcmp(buff, "exit") == 0) {
+            write(sockfd, buff, strlen(buff) + 1);
+            break;
+        }
+
+        printf("\nSERVER OUTPUT:\n");
+        bzero(buff, BUFFER_SIZE);
+        while (1) {
+            int bytesRead = read(sockfd, buff, BUFFER_SIZE - 1);  // Read data into buffer
+            if (bytesRead <= 0) break;
+            
+            buff[bytesRead] = '\0';  // Ensure null termination
+            if (strcmp(buff, "[END]") == 0) break;  // Stop if end marker is received
+            
+            printf("%s", buff);  // Print command output
+            bzero(buff, BUFFER_SIZE);
+        }
+        printf("\n");
+    }
+
+    printf("\nCLIENT: Disconnected from server.\n");
+    close(sockfd);
+    return 0;
+}
+
+
+
+
+
+
+//TCP COMMAND SERVER
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define BUFFER_SIZE 256
+
+int main() {
+    struct sockaddr_in serv_addr, cli_addr;
+    int listenfd, connfd;
+    socklen_t cli_addr_len;
+    char buff[BUFFER_SIZE];
+
+    unsigned short serv_port = 25024;
+    char serv_ip[] = "127.0.0.1";
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(serv_port);
+    inet_aton(serv_ip, &serv_addr.sin_addr);
+
+    printf("\nCOMMAND SERVER STARTED.\n");
+
+    if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("SERVER ERROR: Cannot create socket");
+        exit(1);
+    }
+
+    if ((bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
+        perror("SERVER ERROR: Cannot bind");
+        close(listenfd);
+        exit(1);
+    }
+
+    if ((listen(listenfd, 5)) < 0) {
+        perror("SERVER ERROR: Cannot listen");
+        close(listenfd);
+        exit(1);
+    }
+
+    cli_addr_len = sizeof(cli_addr);
+    for (;;) {
+        printf("\nSERVER: Waiting for client connections...Press Ctrl+C to stop\n");
+
+        if ((connfd = accept(listenfd, (struct sockaddr*)&cli_addr, &cli_addr_len)) < 0) {
+            perror("SERVER ERROR: Cannot accept connection");
+            continue;
+        }
+        printf("\nSERVER: Connected to client at %s.\n", inet_ntoa(cli_addr.sin_addr));
+
+        while (1) {
+            printf("\nSERVER: Enter 'exit' to disconnect client: ");
+            char prompt[BUFFER_SIZE];
+            fgets(prompt, BUFFER_SIZE, stdin);
+            prompt[strcspn(prompt, "\n")] = 0;
+            
+
+            if (strcmp(prompt, "exit") == 0) {
+                printf("\nSERVER: Disconnected client manually.\n");
+                break;
+            }
+
+            bzero(buff, BUFFER_SIZE);
+            if (read(connfd, buff, BUFFER_SIZE) <= 0) {
+                printf("\nSERVER: Client disconnected.\n");
+                break;
+            }
+
+            if (strcmp(buff, "exit") == 0) {
+                printf("\nSERVER: Client requested disconnection.\n");
+                break;
+            }
+
+            printf("\nSERVER: Client sent command: %s\n", buff);
+
+            FILE *fp = popen(buff, "r");
+            if (fp == NULL) {
+                strcpy(buff, "Invalid Command\n");
+                write(connfd, buff, strlen(buff) + 1);
+                printf("\nSERVER: Invalid Command.\n");
+            } else {
+                int hasOutput = 0;
+                printf("\nSERVER: Command output:\n");
+                while (fgets(buff, BUFFER_SIZE - 1, fp) != NULL) {  // Prevent overflow
+                    printf("%s", buff);  // Print output to server console
+                    write(connfd, buff, strlen(buff));  // Send without +1 to avoid unnecessary null termination
+                    hasOutput = 1;
+                    usleep(1000);  // Small delay to prevent loss of packets
+                }
+                pclose(fp);
+                
+                if (!hasOutput) {
+                    strcpy(buff, "Invalid Command\n");
+                    write(connfd, buff, strlen(buff) + 1);
+                    printf("\nSERVER: Invalid Command.\n");
+                }
+
+                strcpy(buff, "[END]");
+                write(connfd, buff, strlen(buff) + 1);  // End marker
+            }
+
+            
+        }
+
+        close(connfd);
+    }
+}
+
+
+
+//TCP CHAT SERVER
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/select.h>
+
+#define BUFFER_SIZE 256
+
+int main() {
+    struct sockaddr_in serv_addr, cli_addr;
+    int listenfd, connfd;
+    socklen_t cli_addr_len;
+    char buff[BUFFER_SIZE];
+
+    unsigned short serv_port = 25022;
+    char serv_ip[] = "127.0.0.1";
+
+    bzero(&serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(serv_port);
+    inet_aton(serv_ip, &serv_addr.sin_addr);
+
+    printf("\nCHAT SERVER STARTED.\n");
+
+    if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("SERVER ERROR: Cannot create socket");
+        exit(1);
+    }
+
+    if ((bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
+        perror("SERVER ERROR: Cannot bind");
+        close(listenfd);
+        exit(1);
+    }
+
+    if ((listen(listenfd, 5)) < 0) {
+        perror("SERVER ERROR: Cannot listen");
+        close(listenfd);
+        exit(1);
+    }
+
+    cli_addr_len = sizeof(cli_addr);
+    for (;;) {
+        printf("\nSERVER: Waiting for client connections... Press Ctrl+C to terminate.\n");
+
+        
+        printf("\nSERVER: Connected to client at %s.\n", inet_ntoa(cli_addr.sin_addr));
+
+        fd_set read_fds;
+        while (1) {
+            FD_ZERO(&read_fds);
+            FD_SET(STDIN_FILENO, &read_fds);
+            FD_SET(connfd, &read_fds);
+
+            printf("\nSERVER: Type a message (or 'exit' to disconnect client): ");
+            fflush(stdout);
+
+            if (FD_ISSET(STDIN_FILENO, &read_fds)) {
+                bzero(buff, BUFFER_SIZE);
+                fgets(buff, BUFFER_SIZE, stdin);
+                buff[strcspn(buff, "\n")] = 0;
+                printf("SERVER: %s\n", buff);
+                write(connfd, buff, strlen(buff) + 1);
+
+                if (strcmp(buff, "exit") == 0) {
+                    printf("\nSERVER: Disconnected client manually.\n");
+                    break;
+                }
+            }
+
+            if (FD_ISSET(connfd, &read_fds)) {
+                bzero(buff, BUFFER_SIZE);
+                if (read(connfd, buff, BUFFER_SIZE) <= 0) {
+                    printf("\nSERVER: Client disconnected.\n");
+                    break;
+                }
+                printf("\nCLIENT: %s\n", buff);
+
+                if (strcmp(buff, "exit") == 0) {
+                    printf("\nSERVER: Client requested disconnection.\n");
+                    break;
+                }
+            }
+        }
+
+        close(connfd);
+    }
+}
+
+
+
+
+/TCP CHAT CLIENT
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/select.h>
+
+#define BUFFER_SIZE 256
+
+int main() {
+    struct sockaddr_in serv_addr;
+    int sockfd;
+    char buff[BUFFER_SIZE];
+
+    unsigned short serv_port = 25022;
+    char serv_ip[] = "127.0.0.1";
+
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("CLIENT ERROR: Cannot create socket");
+    }
+
+    bzero(&serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(serv_port);
+    inet_aton(serv_ip, &serv_addr.sin_addr);
+
+    if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("CLIENT ERROR: Cannot connect to server");
+        close(sockfd);
+        exit(1);
+    }
+
+    printf("\nCLIENT: Connected to server at %s:%d\n", serv_ip, serv_port);
+
+    fd_set read_fds;
+    while (1) {
+        FD_ZERO(&read_fds);
+        FD_SET(STDIN_FILENO, &read_fds);
+        FD_SET(sockfd, &read_fds);
+
+        printf("\nCLIENT: Type a message (or 'exit' to disconnect): ");
+        
+        select(sockfd + 1, &read_fds, NULL, NULL, NULL);
+
+        if (FD_ISSET(STDIN_FILENO, &read_fds)) {
+            bzero(buff, BUFFER_SIZE);
+            fgets(buff, BUFFER_SIZE, stdin);
+            buff[strcspn(buff, "\n")] = 0;
+            printf("CLIENT: %s\n", buff);
