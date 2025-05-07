@@ -1,298 +1,63 @@
-package mathops;
+#include <stdio.h>
+#include <stdbool.h>
 
-public class Operations {
-    private int a;
-    private int b;
+#define MAX_VERTICES 100
 
-    public Operations(int a, int b) {
-        this.a = a;
-        this.b = b;
+int graph[MAX_VERTICES][MAX_VERTICES];
+
+bool isSafe(int vertex, int color[], int c, int totalVertices) {
+    for (int i = 1; i <= totalVertices; i++) {
+        if (graph[vertex][i] && color[i] == c)
+            return false;
     }
-
-    public int add() {
-        return a + b;
-    }
-
-    public int subtract() {
-        return a - b;
-    }
-
-    public int multiply() {
-        return a * b;
-    }
-
-    public int divide() {
-        if (b == 0) {
-            throw new ArithmeticException("Division by zero not allowed.");
-        }
-        return a / b;
-    }
+    return true;
 }
 
+void mColoring(int m, int vertex, int totalVertices, int color[], int *solutionCount) {
+    if (vertex > totalVertices) {
+        printf("Solution %d:\n", (*solutionCount));
+        (*solutionCount)++;
+        for (int i = 1; i <= totalVertices; i++) {
+            printf("Node %d -> color %d\n", i, color[i]);
+        }
+        printf("\n");
+        return;
+    }
 
-import mathops.Operations;
-import java.util.Scanner;
-
-class MainMathApp {
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-
-        try {
-            System.out.print("Enter first number: ");
-            int a = scanner.nextInt();
-
-            System.out.print("Enter second number: ");
-            int b = scanner.nextInt();
-
-            Operations op = new Operations(a, b); 
-
-            System.out.println("Addition: " + op.add());
-            System.out.println("Subtraction: " + op.subtract());
-            System.out.println("Multiplication: " + op.multiply());
-            System.out.println("Division: " + op.divide());
-        } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
-        } finally {
-            scanner.close();
+    for (int c = 1; c <= m; c++) {
+        if (isSafe(vertex, color, c, totalVertices)) {
+            color[vertex] = c;
+            mColoring(m, vertex + 1, totalVertices, color, solutionCount);
+            color[vertex] = -1;
         }
     }
 }
 
+int main() {
+    int vertices;
+    printf("Enter number of vertices: ");
+    scanf("%d", &vertices);
 
-
-
-
-import java.util.Scanner;
-
-class FactorialCalculator {
-    private long[] fact;
-
-    public FactorialCalculator(int size) {
-        fact = new long[size + 1];
-        fact[0] = 1;
-        for (int i = 1; i <= size; i++) {
-            fact[i] = fact[i-1] * i;
+    printf("Enter adjacency matrix (%d x %d):\n", vertices, vertices);
+    for (int i = 1; i <= vertices; i++) {
+        for (int j = 1; j <= vertices; j++) {
+            scanf("%d", &graph[i][j]);
         }
     }
 
-    public long getFactorial(int x) {
-        if (x < 0) {
-            throw new IllegalArgumentException("value of x must be positive");
-        }
-        if (x >= fact.length) {
-            throw new IllegalArgumentException("result will overflow.");
-        }
-        return fact[x];
-    }
-}
+    int m;
+    printf("Enter number of colors: ");
+    scanf("%d", &m);
 
-public class Fact {
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        FactorialCalculator calculator = new FactorialCalculator(20);
+    int color[vertices + 1];
+    for (int i = 1; i <= vertices; i++)
+        color[i] = -1;
 
-        System.out.print("Enter a number to compute factorial: ");
-        int n = scanner.nextInt();
+    int solutionCount = 1;
+    mColoring(m, 1, vertices, color, &solutionCount);
 
-        try {
-            System.out.println("Factorial of " + n + " = " + calculator.getFactorial(n));
-        } catch (IllegalArgumentException e) {
-            System.out.println("Error: " + e.getMessage());
-        }
-        scanner.close();
-    }
-}
+    if (solutionCount == 1)
+        printf("No solution found\n");
 
-
-
-
-import java.util.Scanner;
-
-class ManualExceptionThrower {
-    public void validateAge(int age) {
-        if (age < 18) {
-            throw new ArithmeticException("Not eligible to vote");
-        } else {
-            System.out.println("Eligible to vote");
-        }
-    }
-}
-
-public class MainManualException {
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        ManualExceptionThrower thrower = new ManualExceptionThrower();
-
-        System.out.print("Enter your age: ");
-        int age = scanner.nextInt();
-
-        try {
-            thrower.validateAge(age);
-        } catch (ArithmeticException e) {
-            System.out.println("Exception caught: " + e.getMessage());
-        }
-        scanner.close();
-    }
-}
-
-
-
-
-
-class Ping extends Thread {
-    public void run() {
-        while (true) {
-            System.out.println("Ping");
-            try {
-                 Thread.sleep(1000); 
-            } catch (InterruptedException e) {
-                System.out.println(e);
-            }
-        }
-    }
-}
-
-class Pong extends Thread {
-    public void run() {
-        while (true) {
-            System.out.println("PONG");
-            try { 
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                System.out.println(e);
-            }
-        }
-    }
-}
-
-public class PingPong {
-    public static void main(String[] args) {
-        new Ping().start();
-        new Pong().start();
-    }
-}
-
-
-
-
-
-
-
-class TableGenerator extends Thread {
-    private int number;
-
-    public TableGenerator(int number) {
-        this.number = number;
-    }
-
-    public void run() {
-        for (int i = 1; i <= 10; i++) {
-            System.out.println(number + " x " + i + " = " + (number * i));
-            try { 
-                Thread.sleep(500); 
-            } catch (InterruptedException e) {
-                System.out.println(e);
-            }
-        }
-    }
-}
-
-public class TableThread {
-    public static void main(String[] args) {
-        TableGenerator t5 = new TableGenerator(5);
-        TableGenerator t7 = new TableGenerator(7);
-
-        t5.start();
-        try {
-            t5.join(); 
-        } catch (InterruptedException e) {
-            System.out.println(e);
-        }
-
-        t7.start();
-        try {
-            t7.join(); 
-        } catch (InterruptedException e) {
-            System.out.println(e);
-        }
-        
-        System.out.println("Both tables printed successfully!");
-    }
-}
-
-
-
-
-
-
-class SharedResource {
-    private int data;
-    private boolean available = false;
-
-    public synchronized void produce(int value) {
-        while (available) {
-            try {
-                wait(); 
-            } catch (InterruptedException e) {}
-        }
-        data = value;
-        available = true;
-        System.out.println("Produced: " + value);
-        notify();
-    }
-
-    public synchronized int consume() {
-        while (!available) {
-            try { 
-                wait(); 
-            } catch (InterruptedException e) {}
-        }
-        available = false;
-        System.out.println("Consumed: " + data);
-        notify();
-        return data;
-    }
-}
-
-class Producer extends Thread {
-    private SharedResource resource;
-
-    public Producer(SharedResource resource) {
-        this.resource = resource;
-    }
-
-    public void run() {
-        int value = 0;
-        while (true) {
-            resource.produce(value++);
-            try { 
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {}
-        }
-    }
-}
-
-class Consumer extends Thread {
-    private SharedResource resource;
-
-    public Consumer(SharedResource resource) {
-        this.resource = resource;
-    }
-
-    public void run() {
-        while (true) {
-            resource.consume();
-            try { 
-                Thread.sleep(1500);
-            } catch (InterruptedException e) {}
-        }
-    }
-}
-
-public class ProducerConsumer {
-    public static void main(String[] args) {
-        SharedResource resource = new SharedResource();
-        new Producer(resource).start();
-        new Consumer(resource).start();
-    }
+    return 0;
 }
